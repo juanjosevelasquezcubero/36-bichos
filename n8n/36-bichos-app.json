@@ -1,0 +1,218 @@
+{
+  "name": "36 Bichos — App n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 36 Bichos (app)\n\n1. Ative este workflow.\n2. Abra a URL de **produção** do webhook **Página** (`/webhook/jogo-bicho`).\n3. Cadastro → vários bichos → carrinho → PIX simulado → espera → sorteio.\n4. O sorteio das 18h (Brasília) roda no node **Cron 18h**.\n\nSenha com PBKDF2. PIX é fictício. Sem dinheiro real.",
+        "height": 320,
+        "width": 360,
+        "color": 4
+      },
+      "id": "09d0fd5d-45a5-46ca-bb88-007c3c95244f",
+      "name": "Como usar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "jogo-bicho",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a4d6ade2-afe5-4379-b590-f905d3ac9b44",
+      "name": "Página",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        420,
+        200
+      ],
+      "webhookId": "96132f3a-db7b-4abf-bfb2-0bfc37d90277"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst headers = item.headers || {};\nconst host = headers.host || headers.Host || '';\nconst proto = headers['x-forwarded-proto'] || (String(headers.origin || '').startsWith('http:') ? 'http' : 'https');\nconst webhookUrl = item.webhookUrl || (proto + '://' + host + '/webhook/jogo-bicho');\nconst api = webhookUrl.indexOf('jogo-bicho-api') >= 0\n  ? webhookUrl\n  : webhookUrl.replace(/jogo-bicho\\/?$/, 'jogo-bicho-api');\nconst html = \"<!DOCTYPE html>\\n<html lang=\\\"pt-BR\\\">\\n<head>\\n<meta charset=\\\"utf-8\\\"/>\\n<meta name=\\\"viewport\\\" content=\\\"width=device-width,initial-scale=1\\\"/>\\n<title>36 Bichos · n8n</title>\\n<style>\\n:root{--bg:#12110e;--fg:#f3efe4;--muted:#9a917e;--card:#1c1a16;--line:#2c2922;--gold:#d4a017;--danger:#e25d4a;--radius:14px;--font:ui-sans-serif,system-ui,sans-serif;--display:Palatino,\\\"Palatino Linotype\\\",Georgia,serif}\\n*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);min-height:100dvh}\\nh1,h2,.display{font-family:var(--display);font-weight:500}\\nbutton,input{font:inherit}a{color:var(--gold)}\\n.wrap{max-width:980px;margin:0 auto;padding:24px 16px 96px}\\nheader{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:16px 20px}\\n.muted{color:var(--muted);font-size:13px;line-height:1.5}\\n.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}\\n.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}\\n.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}\\n@media(min-width:720px){.grid{grid-template-columns:repeat(4,1fr)}}\\n.cell{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:132px;color:var(--fg);cursor:pointer}\\n.cell.on{border-color:var(--gold)}\\n.cell.sold{opacity:.42;cursor:not-allowed}\\n.cell.mine{border-color:var(--gold)}\\n.num{font-variant-numeric:tabular-nums;color:var(--gold);font-size:18px}\\n.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}\\n.btn.gold{background:var(--gold);color:#161410;border-color:var(--gold);font-weight:600}\\n.btn.ghost{background:transparent}\\n.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}\\ninput{width:100%;background:#16140f;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:10px 12px}\\nlabel{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}\\n.err{border:1px solid color-mix(in oklab,var(--danger) 40%,transparent);background:var(--card);color:var(--danger);padding:12px;border-radius:10px;margin:12px 0}\\n.bar{position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--line);background:#12110ee6;padding:12px 16px}\\n.center{max-width:460px;margin:40px auto}\\n.pix{font-family:ui-monospace,monospace;font-size:11px;word-break:break-all;background:var(--card);border:1px solid var(--line);padding:12px;border-radius:10px}\\n.clock{font-variant-numeric:tabular-nums;font-size:36px;letter-spacing:.12em;color:var(--gold)}\\n</style>\\n</head>\\n<body>\\n<header>\\n  <div><div class=\\\"kicker\\\">Simulação · n8n</div><div class=\\\"display\\\" style=\\\"font-size:22px\\\">36 Bichos</div></div>\\n  <button class=\\\"btn ghost\\\" id=\\\"outBtn\\\" hidden>Sair</button>\\n</header>\\n<div class=\\\"wrap\\\" id=\\\"app\\\"></div>\\n<script>\\nconst API = \\\"__N8N_API__\\\";\\nconst $=s=>document.querySelector(s);\\nlet token=localStorage.getItem('bicho_token')||'';\\nlet state={step:'gate', board:null, profile:null, selected:[], pix:'', total:0, err:'', takenMsg:'', dismissed:null, clock:''};\\n\\nasync function api(action, extra={}){\\n  const r = await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action,token,...extra})});\\n  const j = await r.json();\\n  if(!j.ok && j.error) throw new Error(j.error);\\n  return j;\\n}\\nfunction money(c){return (c/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}\\nfunction label(n){return String(n).padStart(2,'0');}\\nfunction getA(n){return (state.board?.animals||[]).find(a=>a.n===n);}\\n\\nfunction render(){\\n  const el=$('#app');\\n  const e=state.err?`<div class=\\\"err\\\">${state.err}</div>`:'';\\n  if(state.step==='gate'){\\n    el.innerHTML=`<div class=\\\"center\\\"><p class=\\\"kicker\\\">Simulação educacional</p><h1>36 Bichos</h1><p class=\\\"muted\\\">Cadastro, várias fichas, PIX fictício e sorteio. Sem dinheiro real.</p>${e}\\n      <form id=\\\"f\\\"><label>Nome</label><input name=\\\"name\\\" required minlength=\\\"3\\\"/>\\n      <label>E-mail</label><input name=\\\"email\\\" type=\\\"email\\\" required/>\\n      <label>Telefone</label><input name=\\\"phone\\\" required/>\\n      <label>Senha</label><input name=\\\"password\\\" type=\\\"password\\\" required minlength=\\\"8\\\"/>\\n      <div class=\\\"row\\\" style=\\\"margin-top:16px\\\"><button class=\\\"btn gold\\\" data-act=\\\"signup\\\">Criar conta</button>\\n      <button class=\\\"btn\\\" data-act=\\\"login\\\">Entrar</button></div></form></div>`;\\n    $('#f').onsubmit=async ev=>{\\n      ev.preventDefault();\\n      const act=ev.submitter?.dataset.act||'signup';\\n      const fd=new FormData(ev.target);\\n      try{state.err=''; const j=await api(act,{name:fd.get('name'),email:fd.get('email'),phone:fd.get('phone'),password:fd.get('password')});\\n        token=j.token; localStorage.setItem('bicho_token',token); applyBoard(j);}\\n      catch(err){state.err=err.message; render();}\\n    };\\n    $('#outBtn').hidden=true; return;\\n  }\\n  $('#outBtn').hidden=false;\\n  const b=state.board; const tickets=b.tickets||[]; const taken=b.taken||[];\\n  const mine=tickets.map(t=>t.animalNumber);\\n  const waiting=tickets.some(t=>t.status==='paid') && b.draw?.status!=='drawn';\\n  if(state.step==='result'){\\n    const w=b.resultDraw?.winningNumber; const winA=getA(w);\\n    const hits=b.resultTickets.filter(t=>t.animalNumber===w);\\n    const won=hits.length>0; const ganho=hits.reduce((s,t)=>s+t.priceCents*(b.payout||18),0);\\n    el.innerHTML=`${e}<div class=\\\"center\\\"><h1>${won?'Você ganhou':'Você perdeu'}</h1>\\n      <div class=\\\"card\\\" style=\\\"text-align:center\\\"><p class=\\\"kicker\\\">Bicho sorteado</p>\\n      <div class=\\\"num\\\" style=\\\"font-size:48px\\\">${label(w||0)}</div><div class=\\\"display\\\" style=\\\"font-size:28px\\\">${winA?winA.name:'—'}</div></div>\\n      <div class=\\\"card\\\" style=\\\"margin-top:12px;text-align:center\\\">${won?`<p class=\\\"kicker\\\">Seu ganho</p><div class=\\\"display\\\" style=\\\"font-size:42px;color:var(--gold)\\\">${money(ganho)}</div><p class=\\\"muted\\\">Ficha ${money(b.priceCents)} × ${b.payout}</p>`:`<div class=\\\"display\\\" style=\\\"font-size:28px\\\">Boa sorte na próxima</div><p class=\\\"muted\\\">Ganho ${money(0)}.</p>`}</div>\\n      <button class=\\\"btn\\\" style=\\\"margin-top:16px\\\" id=\\\"nova\\\">Nova rodada</button></div>`;\\n    $('#nova').onclick=()=>{state.dismissed=b.resultDraw?.id; state.step='pick'; load();};\\n    return;\\n  }\\n  if(state.step==='cart'){\\n    el.innerHTML=`<div class=\\\"center\\\"><h1>Carrinho</h1><p class=\\\"muted\\\">${tickets.length} ficha(s). Acerto paga ${b.payout}×.</p>${e}\\n      ${tickets.map(t=>`<div class=\\\"card row\\\" style=\\\"justify-content:space-between;margin-bottom:8px\\\"><div><div class=\\\"muted\\\">${label(t.animalNumber)}</div><div class=\\\"display\\\">${getA(t.animalNumber)?.name||''}</div></div><div class=\\\"row\\\"><span>${money(t.priceCents)}</span><button class=\\\"btn ghost\\\" data-id=\\\"${t.id}\\\">Tirar</button></div></div>`).join('')}\\n      <p>Total ${money(tickets.reduce((s,t)=>s+t.priceCents,0))}</p>\\n      <div class=\\\"row\\\"><button class=\\\"btn gold\\\" id=\\\"pix\\\">Finalizar no PIX</button><button class=\\\"btn\\\" id=\\\"mais\\\">Escolher mais</button></div></div>`;\\n    el.querySelectorAll('[data-id]').forEach(btn=>btn.onclick=async()=>{await api('drop',{ticketId:Number(btn.dataset.id)}); await load();});\\n    $('#mais').onclick=()=>{state.step='pick'; render();};\\n    $('#pix').onclick=async()=>{try{const j=await api('pix'); state.pix=j.payload; state.total=j.totalCents; applyBoard(j); state.step='pix'; render();}catch(err){state.err=err.message;render();}};\\n    return;\\n  }\\n  if(state.step==='pix'){\\n    el.innerHTML=`<div class=\\\"center\\\"><h1>PIX simulado</h1><p class=\\\"muted\\\">${tickets.length} ficha(s) · ${money(state.total||tickets.reduce((s,t)=>s+t.priceCents,0))}</p>${e}\\n      <ul class=\\\"muted\\\">${tickets.map(t=>`<li>${label(t.animalNumber)} ${getA(t.animalNumber)?.name||''}</li>`).join('')}</ul>\\n      <p class=\\\"pix\\\">${state.pix||'Gere de novo pelo carrinho.'}</p>\\n      <div class=\\\"row\\\"><button class=\\\"btn\\\" id=\\\"copy\\\">Copiar código</button><button class=\\\"btn gold\\\" id=\\\"pay\\\">Já paguei (simulação)</button></div></div>`;\\n    $('#copy').onclick=()=>state.pix&&navigator.clipboard.writeText(state.pix);\\n    $('#pay').onclick=async()=>{try{const j=await api('pay'); applyBoard(j);}catch(err){state.err=err.message;render();}};\\n    return;\\n  }\\n  el.innerHTML=`<h1>${waiting?'Pagamento confirmado':'Escolhe os bichos'}</h1>\\n    <p class=\\\"muted\\\">${waiting?'Fichas travadas. O sorteio atualiza sozinho.':`${36-taken.length} casas livres. Marca quantos quiser. Sorteio às 18h.`}</p>${e}\\n    ${waiting?`<div class=\\\"card\\\" style=\\\"margin:16px 0\\\"><p class=\\\"kicker\\\">Próximo sorteio</p><div class=\\\"clock\\\">${state.clock||'—'}</div>\\n      <p class=\\\"muted\\\">${tickets.map(t=>label(t.animalNumber)+' '+ (getA(t.animalNumber)?.name||'')).join(' · ')}</p>\\n      <button class=\\\"btn gold\\\" id=\\\"force\\\" style=\\\"margin-top:10px\\\">Forçar sorteio agora (treino)</button></div>`:''}\\n    ${state.takenMsg?`<div class=\\\"err\\\">${state.takenMsg}</div>`:''}\\n    <div class=\\\"grid\\\">${(b.animals||[]).map(a=>{\\n      const isMine=mine.includes(a.n); const sold=taken.includes(a.n)&&!isMine; const on=state.selected.includes(a.n)||isMine;\\n      return `<button class=\\\"cell ${sold?'sold':on?'on':''} ${isMine?'mine':''}\\\" data-n=\\\"${a.n}\\\" ${sold||isMine||waiting?'disabled':''}>\\n        <div class=\\\"num\\\">${label(a.n)}</div><div class=\\\"display\\\" style=\\\"font-size:18px\\\">${a.name}</div>\\n        <div class=\\\"muted\\\">${sold?'Já foi comprado':isMine?'No seu carrinho':on?'Selecionado':a.hook}</div></button>`;\\n    }).join('')}</div>\\n    ${!waiting?`<div class=\\\"bar\\\"><div class=\\\"wrap row\\\" style=\\\"padding:0;justify-content:space-between\\\">\\n      <span class=\\\"muted\\\">${state.selected.length} selecionado(s)${tickets.length? ' · '+tickets.length+' no carrinho':''}</span>\\n      <div class=\\\"row\\\">${tickets.length?`<button class=\\\"btn\\\" id=\\\"ver\\\">Ver carrinho</button>`:''}\\n      <button class=\\\"btn gold\\\" id=\\\"add\\\">Adicionar ao carrinho</button></div></div></div>`:''}`;\\n  el.querySelectorAll('.cell[data-n]').forEach(btn=>btn.onclick=()=>{\\n    const n=Number(btn.dataset.n); const sold=taken.includes(n)&&!mine.includes(n);\\n    if(sold){ const free=(b.animals||[]).find(a=>!taken.includes(a.n)); state.takenMsg=free?`Essa casa já tem dono. Palpite livre: ${label(free.n)} ${free.name}.`:'Nenhuma livre.'; render(); return; }\\n    state.takenMsg=''; state.selected=state.selected.includes(n)?state.selected.filter(x=>x!==n):[...state.selected,n]; render();\\n  });\\n  const add=$('#add'); if(add) add.onclick=async()=>{ if(!state.selected.length) return; try{ const j=await api('reserve',{animalNumbers:state.selected});\\n    if(j.failures?.length){ state.takenMsg=j.failures.map(f=>f.suggestion?`${label(f.number)} ocupado. Livre perto: ${label(f.suggestion)} ${f.suggestionName}.`:`${label(f.number)} ocupado.`).join(' '); }\\n    state.selected=[]; applyBoard(j);} catch(err){state.err=err.message;render();} };\\n  const ver=$('#ver'); if(ver) ver.onclick=()=>{state.step='cart'; render();};\\n  const force=$('#force'); if(force) force.onclick=async()=>{try{const j=await api('forceDraw'); applyBoard(j);}catch(err){state.err=err.message;render();}};\\n}\\n\\nfunction applyBoard(j){\\n  if(j.profile) state.profile=j.profile;\\n  if(j.board) state.board=j.board;\\n  state.err='';\\n  const b=state.board;\\n  const resultReady=b?.resultDraw && b.resultTickets?.length && b.resultDraw.id!==state.dismissed;\\n  if(resultReady){ state.step='result'; render(); return; }\\n  const tickets=b?.tickets||[];\\n  if(tickets.some(t=>t.status==='paid')){ state.step='pick'; render(); return; }\\n  if(tickets.some(t=>t.status==='awaiting_pix')){ state.step='pix'; render(); return; }\\n  if(state.step==='cart'||state.step==='pix'){ render(); return; }\\n  state.step='pick'; render();\\n}\\nasync function load(){ try{ const j=await api('tick'); applyBoard(j);} catch(err){ if(String(err.message).includes('Sessão')){ token=''; localStorage.removeItem('bicho_token'); state.step='gate';} state.err=err.message; render(); } }\\nfunction countdown(iso){ const diff=Math.max(0,new Date(iso)-Date.now()); const h=Math.floor(diff/3600000), m=Math.floor(diff%3600000/60000), s=Math.floor(diff%60000/1000);\\n  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }\\n$('#outBtn').onclick=()=>{token=''; localStorage.removeItem('bicho_token'); state={step:'gate',board:null,profile:null,selected:[],pix:'',total:0,err:'',takenMsg:'',dismissed:null,clock:''}; render();};\\nif(token) load(); else render();\\nsetInterval(()=>{ if(state.board?.draw?.scheduledAt){ state.clock=countdown(state.board.draw.scheduledAt); const c=document.querySelector('.clock'); if(c) c.textContent=state.clock; } },1000);\\nsetInterval(()=>{ if(token && state.step!=='gate') load().catch(()=>{}); },4000);\\n</script>\\n</body></html>\\n\".split('__N8N_API__').join(api);\nreturn [{ json: { html } }];\n"
+      },
+      "id": "4fba26aa-e0b7-4919-9ca0-0014f77966fd",
+      "name": "Montar HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "84d6f152-5de5-4f53-b75a-973f8258c5ae",
+      "name": "Responder HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        940,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jogo-bicho-api",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fd4131d3-7842-4164-a84c-80b98949558d",
+      "name": "API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        420,
+        480
+      ],
+      "webhookId": "fa828bfd-8e32-4757-b342-3ff0e494d1fa"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst crypto = require('crypto');\nconst ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\", \"hook\": \"Quem sai na frente, leva.\"}, {\"n\": 2, \"name\": \"Águia\", \"hook\": \"Visão de cima. Decisão rápida.\"}, {\"n\": 3, \"name\": \"Burro\", \"hook\": \"Teimoso. E teimoso ganha.\"}, {\"n\": 4, \"name\": \"Borboleta\", \"hook\": \"Leve agora. Pesado no bolso depois.\"}, {\"n\": 5, \"name\": \"Cachorro\", \"hook\": \"Fiel ao instinto.\"}, {\"n\": 6, \"name\": \"Cabra\", \"hook\": \"Sobe onde os outros param.\"}, {\"n\": 7, \"name\": \"Carneiro\", \"hook\": \"O sete puxa olho. Use isso.\"}, {\"n\": 8, \"name\": \"Camelo\", \"hook\": \"Reserva energia. Explode na hora.\"}, {\"n\": 9, \"name\": \"Cobra\", \"hook\": \"Silêncio. Depois o bote.\"}, {\"n\": 10, \"name\": \"Coelho\", \"hook\": \"Rápido. Quase ninguém espera.\"}, {\"n\": 11, \"name\": \"Cavalo\", \"hook\": \"Força bruta com direção.\"}, {\"n\": 12, \"name\": \"Elefante\", \"hook\": \"Peso. Presença. Memória.\"}, {\"n\": 13, \"name\": \"Galo\", \"hook\": \"Acorda o terreiro inteiro.\"}, {\"n\": 14, \"name\": \"Gato\", \"hook\": \"Sete vidas. Uma ficha.\"}, {\"n\": 15, \"name\": \"Jacaré\", \"hook\": \"Parado. Mortal.\"}, {\"n\": 16, \"name\": \"Leão\", \"hook\": \"O rei não pede vez.\"}, {\"n\": 17, \"name\": \"Macaco\", \"hook\": \"Joga com o imprevisível.\"}, {\"n\": 18, \"name\": \"Porco\", \"hook\": \"Sorte gorda. Literalmente.\"}, {\"n\": 19, \"name\": \"Pavão\", \"hook\": \"Quem brilha, é visto.\"}, {\"n\": 20, \"name\": \"Peru\", \"hook\": \"Peito aberto. Coragem.\"}, {\"n\": 21, \"name\": \"Touro\", \"hook\": \"Avança e o mercado respeita.\"}, {\"n\": 22, \"name\": \"Tigre\", \"hook\": \"Listrado pra não passar batido.\"}, {\"n\": 23, \"name\": \"Urso\", \"hook\": \"Devagar. Decide o jogo.\"}, {\"n\": 24, \"name\": \"Veado\", \"hook\": \"Salta fora da trilha óbvia.\"}, {\"n\": 25, \"name\": \"Vaca\", \"hook\": \"Clássico que ainda paga.\"}, {\"n\": 26, \"name\": \"Lobo\", \"hook\": \"Caça em silêncio.\"}, {\"n\": 27, \"name\": \"Raposa\", \"hook\": \"Esperta demais pra ser óbvia.\"}, {\"n\": 28, \"name\": \"Coruja\", \"hook\": \"Vê o que o dia esconde.\"}, {\"n\": 29, \"name\": \"Tubarão\", \"hook\": \"Cheiro de movimento.\"}, {\"n\": 30, \"name\": \"Golfinho\", \"hook\": \"Inteligência com fluxo.\"}, {\"n\": 31, \"name\": \"Falcão\", \"hook\": \"Mergulho certeiro.\"}, {\"n\": 32, \"name\": \"Pantera\", \"hook\": \"Preto no preto. Elite.\"}, {\"n\": 33, \"name\": \"Rato\", \"hook\": \"Subestimado. Perigoso.\"}, {\"n\": 34, \"name\": \"Pato\", \"hook\": \"Calmo na superfície.\"}, {\"n\": 35, \"name\": \"Abelha\", \"hook\": \"Trabalho. Mel. Resultado.\"}, {\"n\": 36, \"name\": \"Peixe\", \"hook\": \"Água parada não é o seu jogo.\"}];\nconst PRICE = 500;\nconst PAYOUT = 18;\nconst HOUSE = [3,7,11,16,22,28,32,35];\n\nfunction store() {\n  const s = $getWorkflowStaticData('global');\n  if (!s.users) s.users = {};\n  if (!s.sessions) s.sessions = {};\n  if (!s.tickets) s.tickets = [];\n  if (!s.draws) s.draws = [];\n  if (!s.seq) s.seq = 1;\n  return s;\n}\nfunction nextId(s) { s.seq += 1; return s.seq; }\nfunction pad(n) { return String(n).padStart(2,'0'); }\nfunction animal(n) { return ANIMALS.find(a => a.n === n); }\nfunction nextDrawIso(from = new Date()) {\n  const sp = new Date(from.getTime() - 180*60*1000);\n  const y = sp.getUTCFullYear(), m = sp.getUTCMonth(), d = sp.getUTCDate();\n  let t = Date.UTC(y, m, d, 21, 0, 0, 0);\n  if (t <= from.getTime()) t += 86400000;\n  return new Date(t).toISOString();\n}\nfunction getOpenDraw(s) {\n  let open = s.draws.find(d => d.status === 'open');\n  if (open) return open;\n  const draw = { id: nextId(s), scheduledAt: nextDrawIso(), status: 'open', winningNumber: null, drawnAt: null };\n  s.draws.push(draw);\n  for (const n of HOUSE) {\n    s.tickets.push({ id: nextId(s), email: 'house', drawId: draw.id, animalNumber: n, status: 'paid', priceCents: PRICE, pixTxid: 'HOUSE-'+n, paidAt: new Date().toISOString() });\n  }\n  return draw;\n}\nfunction taken(s, drawId) {\n  return s.tickets.filter(t => t.drawId === drawId && ['cart','awaiting_pix','paid'].includes(t.status)).map(t => t.animalNumber);\n}\nfunction recommend(takenList, preferred) {\n  const free = ANIMALS.filter(a => !takenList.includes(a.n));\n  if (!free.length) return null;\n  if (preferred) free.sort((a,b)=>Math.abs(a.n-preferred)-Math.abs(b.n-preferred));\n  return free[0];\n}\nfunction hash(pw, salt) { return crypto.pbkdf2Sync(pw, salt, 120000, 32, 'sha256').toString('hex'); }\nfunction emv(id, value) { return id + String(value.length).padStart(2,'0') + value; }\nfunction crc16(payload) {\n  let crc = 0xffff;\n  for (let i=0;i<payload.length;i++) {\n    crc ^= payload.charCodeAt(i) << 8;\n    for (let b=0;b<8;b++) crc = crc & 0x8000 ? (crc<<1)^0x1021 : crc<<1, crc &= 0xffff;\n  }\n  return crc.toString(16).toUpperCase().padStart(4,'0');\n}\nfunction pix(txid, cents) {\n  const amount = (cents/100).toFixed(2);\n  const gui = emv('00','BR.GOV.BCB.PIX') + emv('01','simulacao-educacional@local');\n  const add = emv('05', String(txid).slice(0,25));\n  const base = emv('00','01')+emv('01','12')+emv('26',gui)+emv('52','0000')+emv('53','986')+emv('54',amount)+emv('58','BR')+emv('59','36 BICHOS SIM')+emv('60','PORTO ALEGRE')+emv('62',add)+'6304';\n  return base + crc16(base);\n}\nfunction runDraw(s, draw, force) {\n  if (draw.status === 'drawn') return draw;\n  const due = new Date(draw.scheduledAt).getTime() <= Date.now();\n  if (!due && !force) return draw;\n  const bytes = crypto.randomBytes(4);\n  const n = bytes.readUInt32BE(0);\n  draw.status = 'drawn';\n  draw.winningNumber = (n % 36) + 1;\n  draw.drawnAt = new Date().toISOString();\n  return draw;\n}\nfunction tokenUser(s, token) {\n  const sess = s.sessions[token];\n  if (!sess) return null;\n  return s.users[sess.email] || null;\n}\nfunction boardFor(s, email) {\n  const draw = getOpenDraw(s);\n  const mine = s.tickets.filter(t => t.email === email && t.drawId === draw.id);\n  const last = [...s.draws].reverse().find(d => d.status === 'drawn' && s.tickets.some(t => t.email === email && t.drawId === d.id && t.status === 'paid'));\n  const resultTickets = last ? s.tickets.filter(t => t.email === email && t.drawId === last.id && t.status === 'paid') : [];\n  return { draw, taken: taken(s, draw.id), tickets: mine, resultDraw: last || null, resultTickets, animals: ANIMALS, priceCents: PRICE, payout: PAYOUT };\n}\n\nconst item = $input.first().json;\nconst action = (item.body && item.body.action) || item.action || item.query?.action || 'board';\nconst body = item.body || item;\nconst s = store();\nlet out = { ok: false };\n\ntry {\n  if (action === 'signup') {\n    const name = String(body.name||'').trim();\n    const email = String(body.email||'').trim().toLowerCase();\n    const phone = String(body.phone||'').replace(/\\D/g,'');\n    const password = String(body.password||'');\n    if (name.length < 3) throw new Error('Nome com no mínimo 3 letras.');\n    if (!email.includes('@')) throw new Error('E-mail inválido.');\n    if (phone.length < 10) throw new Error('Telefone incompleto.');\n    if (password.length < 8) throw new Error('Senha com no mínimo 8 caracteres.');\n    if (s.users[email]) throw new Error('Este e-mail já tem conta. Entre.');\n    const salt = crypto.randomBytes(16).toString('hex');\n    s.users[email] = { name, email, phone, salt, passwordHash: hash(password, salt), createdAt: new Date().toISOString() };\n    const token = crypto.randomBytes(24).toString('hex');\n    s.sessions[token] = { email, at: Date.now() };\n    out = { ok: true, token, profile: { name, email, phone }, board: boardFor(s, email) };\n  } else if (action === 'login') {\n    const email = String(body.email||'').trim().toLowerCase();\n    const password = String(body.password||'');\n    const u = s.users[email];\n    if (!u || u.passwordHash !== hash(password, u.salt)) throw new Error('Credenciais inválidas.');\n    const token = crypto.randomBytes(24).toString('hex');\n    s.sessions[token] = { email, at: Date.now() };\n    out = { ok: true, token, profile: { name: u.name, email, phone: u.phone }, board: boardFor(s, email) };\n  } else if (action === 'board' || action === 'tick') {\n    const u = tokenUser(s, body.token);\n    if (!u) throw new Error('Sessão expirada. Entre de novo.');\n    const draw = getOpenDraw(s);\n    if (new Date(draw.scheduledAt).getTime() <= Date.now()) runDraw(s, draw, false);\n    out = { ok: true, profile: { name: u.name, email: u.email, phone: u.phone }, board: boardFor(s, u.email) };\n  } else if (action === 'reserve') {\n    const u = tokenUser(s, body.token);\n    if (!u) throw new Error('Sessão expirada.');\n    const draw = getOpenDraw(s);\n    if (draw.status !== 'open') throw new Error('Sorteio fechado.');\n    const nums = [...new Set((body.animalNumbers||[]).map(Number).filter(n => n>=1 && n<=36))];\n    if (!nums.length) throw new Error('Escolhe pelo menos um bicho.');\n    const failures = [];\n    for (const n of nums) {\n      const mine = s.tickets.find(t => t.email===u.email && t.drawId===draw.id && t.animalNumber===n);\n      if (mine) continue;\n      const clash = s.tickets.find(t => t.drawId===draw.id && t.animalNumber===n && ['cart','awaiting_pix','paid'].includes(t.status));\n      if (clash) {\n        const sug = recommend(taken(s, draw.id), n);\n        failures.push({ number: n, suggestion: sug ? sug.n : null, suggestionName: sug ? sug.name : null });\n        continue;\n      }\n      s.tickets.push({ id: nextId(s), email: u.email, drawId: draw.id, animalNumber: n, status: 'cart', priceCents: PRICE, pixTxid: null, paidAt: null });\n    }\n    out = { ok: failures.length===0, failures, board: boardFor(s, u.email) };\n  } else if (action === 'drop') {\n    const u = tokenUser(s, body.token);\n    if (!u) throw new Error('Sessão expirada.');\n    s.tickets = s.tickets.filter(t => !(t.id===Number(body.ticketId) && t.email===u.email && ['cart','awaiting_pix'].includes(t.status)));\n    out = { ok: true, board: boardFor(s, u.email) };\n  } else if (action === 'pix') {\n    const u = tokenUser(s, body.token);\n    if (!u) throw new Error('Sessão expirada.');\n    const draw = getOpenDraw(s);\n    const rows = s.tickets.filter(t => t.email===u.email && t.drawId===draw.id && ['cart','awaiting_pix'].includes(t.status));\n    if (!rows.length) throw new Error('Carrinho vazio.');\n    const total = rows.reduce((a,t)=>a+t.priceCents,0);\n    const txid = 'SIM'+Date.now().toString(36).toUpperCase();\n    rows.forEach(t => { t.status='awaiting_pix'; t.pixTxid=txid; });\n    out = { ok: true, payload: pix(txid, total), totalCents: total, board: boardFor(s, u.email) };\n  } else if (action === 'pay') {\n    const u = tokenUser(s, body.token);\n    if (!u) throw new Error('Sessão expirada.');\n    const draw = getOpenDraw(s);\n    const rows = s.tickets.filter(t => t.email===u.email && t.drawId===draw.id && t.status==='awaiting_pix');\n    if (!rows.length) throw new Error('Pagamento ainda não disponível.');\n    rows.forEach(t => { t.status='paid'; t.paidAt=new Date().toISOString(); });\n    out = { ok: true, board: boardFor(s, u.email) };\n  } else if (action === 'forceDraw') {\n    const u = tokenUser(s, body.token);\n    if (!u) throw new Error('Sessão expirada.');\n    const waiting = s.tickets.find(t => t.email===u.email && t.status==='paid' && s.draws.find(d=>d.id===t.drawId && d.status==='open'));\n    const draw = waiting ? s.draws.find(d=>d.id===waiting.drawId) : getOpenDraw(s);\n    runDraw(s, draw, true);\n    out = { ok: true, board: boardFor(s, u.email) };\n  } else if (action === 'scheduledDraw') {\n    for (const d of s.draws.filter(x => x.status==='open' && new Date(x.scheduledAt).getTime()<=Date.now())) runDraw(s, d, false);\n    getOpenDraw(s);\n    out = { ok: true, draws: s.draws.slice(-5) };\n  } else {\n    throw new Error('Ação desconhecida.');\n  }\n} catch (e) {\n  out = { ok: false, error: e.message };\n}\nreturn [{ json: out }];\n"
+      },
+      "id": "0f3e7229-b42e-4390-b6f4-dd1238e6b1d4",
+      "name": "Jogo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "8a530892-b610-441a-9021-908fb9f06360",
+      "name": "Responder JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        940,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "26a2c352-a75f-41ee-9c1c-7271e48a9ccd",
+      "name": "Cron 18h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        420,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst crypto = require('crypto');\nconst s = $getWorkflowStaticData('global');\nif (!s.draws) s.draws = [];\nif (!s.tickets) s.tickets = [];\nif (!s.seq) s.seq = 1;\nconst now = Date.now();\nfor (const d of s.draws.filter(x => x.status==='open' && new Date(x.scheduledAt).getTime()<=now)) {\n  const n = crypto.randomBytes(4).readUInt32BE(0);\n  d.status='drawn';\n  d.winningNumber=(n%36)+1;\n  d.drawnAt=new Date().toISOString();\n}\nlet open = s.draws.find(d => d.status==='open');\nif (!open) {\n  const sp = new Date(Date.now() - 180*60*1000);\n  let t = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 21,0,0,0);\n  if (t <= Date.now()) t += 86400000;\n  open = { id: ++s.seq, scheduledAt: new Date(t).toISOString(), status:'open', winningNumber:null, drawnAt:null };\n  s.draws.push(open);\n  for (const n of [3,7,11,16,22,28,32,35]) {\n    s.tickets.push({ id: ++s.seq, email:'house', drawId: open.id, animalNumber:n, status:'paid', priceCents:500, pixTxid:'HOUSE-'+n });\n  }\n}\nreturn [{ json: { ok: true, open, lastDrawn: s.draws.filter(d=>d.status==='drawn').slice(-1)[0] || null } }];\n"
+      },
+      "id": "4da7981b-d3f9-43a9-81b6-494f11522785",
+      "name": "Sortear se devido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        760
+      ]
+    }
+  ],
+  "connections": {
+    "Página": {
+      "main": [
+        [
+          {
+            "node": "Montar HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar HTML": {
+      "main": [
+        [
+          {
+            "node": "Responder HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API": {
+      "main": [
+        [
+          {
+            "node": "Jogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jogo": {
+      "main": [
+        [
+          {
+            "node": "Responder JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron 18h": {
+      "main": [
+        [
+          {
+            "node": "Sortear se devido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
