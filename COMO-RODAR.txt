@@ -1,0 +1,8 @@
+36 BICHOS — VS Code
+
+1. Instale Node.js 22: https://nodejs.org/
+2. Extraia o zip / clone o repo
+3. VS Code → File → Open Folder
+4. npm install
+5. npm run dev
+6. Abra http://localhost:8080
