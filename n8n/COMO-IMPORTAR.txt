@@ -1,0 +1,59 @@
+36 BICHOS — versão n8n
+======================
+
+O mesmo jogo: cadastro, 36 animais, várias fichas, PIX fictício,
+aviso se o bicho já foi comprado, sorteio às 18h, ganho 18×.
+Sem dinheiro real.
+
+Arquivos
+--------
+1) 36-bichos-formularios.json
+   Jogo em formulários nativos da plataforma (mais simples de clicar).
+
+2) 36-bichos-app.json
+   Jogo completo (tela igual ao app): webhook HTML + API + cron 18h.
+
+3) 36-bichos-sorteio.json
+   Só o cron das 18h (opcional — o app já traz o cron dentro).
+
+Como importar no n8n Cloud ou no n8n próprio
+--------------------------------------------
+1. Abra o n8n.
+2. Menu ☰ → Workflows.
+3. Canto superior direito: ⋯ ou “Add workflow” → Import from File
+   (em alguns planos: ⋯ no canvas → Import from File).
+4. Escolha 36-bichos-formularios.json
+5. Repita com 36-bichos-app.json
+6. Clique em Active (interruptor) em cada um.
+
+Rodar pelos FORMULÁRIOS
+-----------------------
+1. Abra o workflow “36 Bichos — Formulários n8n”.
+2. Clique no node Cadastro.
+3. Copie a URL de produção do formulário
+   (algo como https://SEU-N8N/form/36-bichos).
+4. Abra no navegador.
+5. Fluxo: nome/e-mail/telefone/senha → marcar bichos
+   → PIX simulado → “Já paguei” → forçar sorteio ou esperar 18h.
+6. Se o bicho já estiver ocupado, o fluxo troca por um palpite livre.
+
+Rodar pelo APP (tela cheia)
+---------------------------
+1. Abra “36 Bichos — App n8n” e ative.
+2. Clique no node Página (Webhook GET).
+3. Copie a Production URL
+   (https://SEU-N8N/webhook/jogo-bicho).
+4. Abra no navegador. Cadastro, tabuleiro, carrinho, PIX, resultado.
+
+Sorteio
+-------
+Timezone do workflow: America/Sao_Paulo.
+Cron: 0 18 * * *  (18:00).
+No app, o botão “Forçar sorteio agora (treino)” adianta o resultado.
+
+Dados
+-----
+Contas, fichas e sorteios ficam na memória estática do workflow.
+Reiniciar o n8n pode zerar.
+Senha: PBKDF2 (120 mil iterações), nunca texto puro.
+PIX: payload EMV didático, chave fictícia.
