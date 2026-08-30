@@ -1,32 +1,15 @@
 # 36 Bichos
 
-Simulação educacional do tabuleiro de 36 animais: cadastro, várias fichas, PIX fictício e sorteio. **Não há dinheiro real.**
+Simulação educacional do tabuleiro de 36 animais. **Não há dinheiro real.**
 
-## Baixar o ZIP
+## Importar no n8n pelo GitHub
 
-No GitHub: botão verde **Code** → **Download ZIP**.
+[Importar Formulários no n8n Cloud](https://app.n8n.cloud/workflow/new?importUrl=https%3A%2F%2Fraw.githubusercontent.com%2Fjuanjosevelasquezcubero%2F36-bichos%2Frefs%2Fheads%2Fmain%2Fn8n%2F36-bichos-formularios.json)
 
-Link direto:
-https://github.com/juanjosevelasquezcubero/36-bichos/archive/refs/heads/main.zip
+[Importar App no n8n Cloud](https://app.n8n.cloud/workflow/new?importUrl=https%3A%2F%2Fraw.githubusercontent.com%2Fjuanjosevelasquezcubero%2F36-bichos%2Frefs%2Fheads%2Fmain%2Fn8n%2F36-bichos-app.json)
 
-## Rodar no VS Code
+### Colar no n8n · Import from URL
 
-1. Instale [Node.js 22](https://nodejs.org/) (LTS).
-2. Extraia o ZIP e abra a pasta no VS Code: **File → Open Folder**.
-3. Terminal:
+https://raw.githubusercontent.com/juanjosevelasquezcubero/36-bichos/refs/heads/main/n8n/36-bichos-formularios.json
 
-```bash
-npm install
-npm run dev
-```
-
-4. Abra http://localhost:8080
-
-### Fluxo
-
-- Criar conta (nome, e-mail, telefone, senha) ou entrar
-- Marcar um ou mais bichos livres → carrinho → PIX simulado
-- Depois do pagamento o tabuleiro volta com o cronômetro
-- Às 18h (horário de Brasília) o sorteio roda sozinho
-- Botão **Forçar sorteio agora (treino)** adianta o resultado
-- Acerto paga 18× a ficha (R$ 5,00 → R$ 90,00)
+Mais na pasta [n8n/](./n8n/).

@@ -1,19 +1,29 @@
 # 36 Bichos no n8n
 
-Simulação educacional: 36 animais, cadastro, várias fichas, PIX fictício e sorteio às 18h. **Não há dinheiro real.**
+Simulação educacional. **Sem dinheiro real.**
 
-## Importar
+## Importar pelo GitHub (1 clique no Cloud)
 
-No n8n: **⋯ → Import from File** e escolha:
+Abre o n8n Cloud logado e clica:
 
-| Arquivo | O que é |
-|---|---|
-| [36-bichos-formularios.json](./36-bichos-formularios.json) | Jogo em formulários nativos |
-| [36-bichos-app.json](./36-bichos-app.json) | Tela completa (webhook HTML + API + cron) |
-| [36-bichos-sorteio.json](./36-bichos-sorteio.json) | Cron 18h avulso (opcional) |
+- [Importar Formulários](https://app.n8n.cloud/workflow/new?importUrl=https%3A%2F%2Fraw.githubusercontent.com%2Fjuanjosevelasquezcubero%2F36-bichos%2Frefs%2Fheads%2Fmain%2Fn8n%2F36-bichos-formularios.json)
+- [Importar App tela cheia](https://app.n8n.cloud/workflow/new?importUrl=https%3A%2F%2Fraw.githubusercontent.com%2Fjuanjosevelasquezcubero%2F36-bichos%2Frefs%2Fheads%2Fmain%2Fn8n%2F36-bichos-app.json)
+- [Importar Sorteio 18h](https://app.n8n.cloud/workflow/new?importUrl=https%3A%2F%2Fraw.githubusercontent.com%2Fjuanjosevelasquezcubero%2F36-bichos%2Frefs%2Fheads%2Fmain%2Fn8n%2F36-bichos-sorteio.json)
 
-Ative o workflow. Detalhes em [COMO-IMPORTAR.txt](./COMO-IMPORTAR.txt).
+## Import from URL (qualquer n8n)
 
-## Fluxo
+No n8n: **⋯ → Import from URL** e cola um destes:
 
-Cadastro (nome, e-mail, telefone, senha) → vários bichos livres → se ocupado, palpite livre → carrinho → PIX simulado → espera → sorteio → **Você ganhou** (18×) ou **Boa sorte na próxima**.
+```
+https://raw.githubusercontent.com/juanjosevelasquezcubero/36-bichos/refs/heads/main/n8n/36-bichos-formularios.json
+```
+
+```
+https://raw.githubusercontent.com/juanjosevelasquezcubero/36-bichos/refs/heads/main/n8n/36-bichos-app.json
+```
+
+```
+https://raw.githubusercontent.com/juanjosevelasquezcubero/36-bichos/refs/heads/main/n8n/36-bichos-sorteio.json
+```
+
+Repo: https://github.com/juanjosevelasquezcubero/36-bichos
