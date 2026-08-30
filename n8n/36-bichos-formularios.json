@@ -1,0 +1,575 @@
+{
+  "name": "36 Bichos — Formulários n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 36 Bichos (formulários n8n)\n\n1. Ative o workflow.\n2. Abra a URL do formulário **Cadastro** (ícone de formulário no node).\n3. Fluxo: cadastro → escolher vários bichos → PIX simulado → forçar sorteio ou esperar 18h.\n\nSe o bicho já estiver comprado, o fluxo troca automaticamente por um palpite livre.\n\nPIX fictício. Sem dinheiro real.",
+        "height": 340,
+        "width": 360,
+        "color": 4
+      },
+      "id": "83056d13-bcf3-4049-a722-524e87ac805d",
+      "name": "Como usar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "path": "36-bichos",
+        "formTitle": "36 Bichos — Cadastro",
+        "formDescription": "Simulação educacional. Sem dinheiro real. Se você já tem conta, use o mesmo e-mail e senha.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Nome completo",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "Seu nome"
+            },
+            {
+              "fieldLabel": "E-mail",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Telefone",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "DDD + número"
+            },
+            {
+              "fieldLabel": "Senha",
+              "fieldType": "password",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Entrar no terreiro"
+        }
+      },
+      "id": "729869ad-763b-48bb-aac2-99763ea6ed7b",
+      "name": "Cadastro",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        420,
+        240
+      ],
+      "webhookId": "d40c92c4-5538-4ca8-9eb6-8bda9c1a286d"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst crypto = require('crypto');\nconst s = $getWorkflowStaticData('global');\nif (!s.users) s.users = {};\nif (!s.tickets) s.tickets = [];\nif (!s.draws) s.draws = [];\nif (!s.seq) s.seq = 1;\nconst j = $input.first().json;\nconst name = String(j['Nome completo'] || j.Nome || '').trim();\nconst email = String(j['E-mail'] || j.Email || '').trim().toLowerCase();\nconst phone = String(j.Telefone || '').replace(/\\D/g,'');\nconst password = String(j.Senha || '');\nif (name.length < 3) throw new Error('Nome curto.');\nif (!email.includes('@')) throw new Error('E-mail inválido.');\nif (phone.length < 10) throw new Error('Telefone incompleto.');\nif (password.length < 8) throw new Error('Senha com no mínimo 8 caracteres.');\nfunction hash(pw, salt){ return crypto.pbkdf2Sync(pw, salt, 120000, 32, 'sha256').toString('hex'); }\nif (s.users[email]) {\n  const u = s.users[email];\n  if (u.passwordHash !== hash(password, u.salt)) throw new Error('Conta já existe e a senha não confere.');\n} else {\n  const salt = crypto.randomBytes(16).toString('hex');\n  s.users[email] = { name, email, phone, salt, passwordHash: hash(password, salt), createdAt: new Date().toISOString() };\n}\nconst HOUSE = [3,7,11,16,22,28,32,35];\nlet open = s.draws.find(d => d.status === 'open');\nif (!open) {\n  const now = new Date();\n  const sp = new Date(now.getTime() - 180*60*1000);\n  let t = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 21,0,0,0);\n  if (t <= now.getTime()) t += 86400000;\n  open = { id: ++s.seq, scheduledAt: new Date(t).toISOString(), status: 'open', winningNumber: null, drawnAt: null };\n  s.draws.push(open);\n  for (const n of HOUSE) {\n    s.tickets.push({ id: ++s.seq, email: 'house', drawId: open.id, animalNumber: n, status: 'paid', priceCents: 500, pixTxid: 'HOUSE-'+n });\n  }\n}\nconst taken = s.tickets.filter(t => t.drawId===open.id).map(t => t.animalNumber);\nconst ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\"}, {\"n\": 2, \"name\": \"Águia\"}, {\"n\": 3, \"name\": \"Burro\"}, {\"n\": 4, \"name\": \"Borboleta\"}, {\"n\": 5, \"name\": \"Cachorro\"}, {\"n\": 6, \"name\": \"Cabra\"}, {\"n\": 7, \"name\": \"Carneiro\"}, {\"n\": 8, \"name\": \"Camelo\"}, {\"n\": 9, \"name\": \"Cobra\"}, {\"n\": 10, \"name\": \"Coelho\"}, {\"n\": 11, \"name\": \"Cavalo\"}, {\"n\": 12, \"name\": \"Elefante\"}, {\"n\": 13, \"name\": \"Galo\"}, {\"n\": 14, \"name\": \"Gato\"}, {\"n\": 15, \"name\": \"Jacaré\"}, {\"n\": 16, \"name\": \"Leão\"}, {\"n\": 17, \"name\": \"Macaco\"}, {\"n\": 18, \"name\": \"Porco\"}, {\"n\": 19, \"name\": \"Pavão\"}, {\"n\": 20, \"name\": \"Peru\"}, {\"n\": 21, \"name\": \"Touro\"}, {\"n\": 22, \"name\": \"Tigre\"}, {\"n\": 23, \"name\": \"Urso\"}, {\"n\": 24, \"name\": \"Veado\"}, {\"n\": 25, \"name\": \"Vaca\"}, {\"n\": 26, \"name\": \"Lobo\"}, {\"n\": 27, \"name\": \"Raposa\"}, {\"n\": 28, \"name\": \"Coruja\"}, {\"n\": 29, \"name\": \"Tubarão\"}, {\"n\": 30, \"name\": \"Golfinho\"}, {\"n\": 31, \"name\": \"Falcão\"}, {\"n\": 32, \"name\": \"Pantera\"}, {\"n\": 33, \"name\": \"Rato\"}, {\"n\": 34, \"name\": \"Pato\"}, {\"n\": 35, \"name\": \"Abelha\"}, {\"n\": 36, \"name\": \"Peixe\"}];\nconst livres = ANIMALS.filter(a => !taken.includes(a.n)).map(a => `${String(a.n).padStart(2,'0')} ${a.name}`).join(', ');\nreturn [{ json: { email, name, phone, drawId: open.id, aviso: `Casas da casa já ocupadas: ${taken.map(n=>String(n).padStart(2,'0')).join(', ')}. Livres: ${livres}`, taken } }];\n"
+      },
+      "id": "65f169b8-1914-4101-8bd2-3d297fccf22c",
+      "name": "Registrar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Escolhe os bichos",
+        "formDescription": "={{ $json.aviso }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Bichos",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "01 — Avestruz"
+                  },
+                  {
+                    "option": "02 — Águia"
+                  },
+                  {
+                    "option": "03 — Burro"
+                  },
+                  {
+                    "option": "04 — Borboleta"
+                  },
+                  {
+                    "option": "05 — Cachorro"
+                  },
+                  {
+                    "option": "06 — Cabra"
+                  },
+                  {
+                    "option": "07 — Carneiro"
+                  },
+                  {
+                    "option": "08 — Camelo"
+                  },
+                  {
+                    "option": "09 — Cobra"
+                  },
+                  {
+                    "option": "10 — Coelho"
+                  },
+                  {
+                    "option": "11 — Cavalo"
+                  },
+                  {
+                    "option": "12 — Elefante"
+                  },
+                  {
+                    "option": "13 — Galo"
+                  },
+                  {
+                    "option": "14 — Gato"
+                  },
+                  {
+                    "option": "15 — Jacaré"
+                  },
+                  {
+                    "option": "16 — Leão"
+                  },
+                  {
+                    "option": "17 — Macaco"
+                  },
+                  {
+                    "option": "18 — Porco"
+                  },
+                  {
+                    "option": "19 — Pavão"
+                  },
+                  {
+                    "option": "20 — Peru"
+                  },
+                  {
+                    "option": "21 — Touro"
+                  },
+                  {
+                    "option": "22 — Tigre"
+                  },
+                  {
+                    "option": "23 — Urso"
+                  },
+                  {
+                    "option": "24 — Veado"
+                  },
+                  {
+                    "option": "25 — Vaca"
+                  },
+                  {
+                    "option": "26 — Lobo"
+                  },
+                  {
+                    "option": "27 — Raposa"
+                  },
+                  {
+                    "option": "28 — Coruja"
+                  },
+                  {
+                    "option": "29 — Tubarão"
+                  },
+                  {
+                    "option": "30 — Golfinho"
+                  },
+                  {
+                    "option": "31 — Falcão"
+                  },
+                  {
+                    "option": "32 — Pantera"
+                  },
+                  {
+                    "option": "33 — Rato"
+                  },
+                  {
+                    "option": "34 — Pato"
+                  },
+                  {
+                    "option": "35 — Abelha"
+                  },
+                  {
+                    "option": "36 — Peixe"
+                  }
+                ]
+              },
+              "multiselect": true,
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Ir ao carrinho / PIX"
+        }
+      },
+      "id": "c6658e5e-30fd-40cf-b8da-cc100bb1b6fa",
+      "name": "Escolher bichos",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst crypto = require('crypto');\nconst s = $getWorkflowStaticData('global');\nconst prev = $input.first().json;\nconst raw = prev.Bichos || prev.bichos || [];\nconst list = Array.isArray(raw) ? raw : String(raw).split(',');\nfunction num(v){ const m = String(v).match(/(\\d+)/); return m ? Number(m[1]) : 0; }\nconst nums = [...new Set(list.map(num).filter(n => n>=1 && n<=36))];\nif (!nums.length) throw new Error('Escolhe pelo menos um bicho.');\nconst ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\"}, {\"n\": 2, \"name\": \"Águia\"}, {\"n\": 3, \"name\": \"Burro\"}, {\"n\": 4, \"name\": \"Borboleta\"}, {\"n\": 5, \"name\": \"Cachorro\"}, {\"n\": 6, \"name\": \"Cabra\"}, {\"n\": 7, \"name\": \"Carneiro\"}, {\"n\": 8, \"name\": \"Camelo\"}, {\"n\": 9, \"name\": \"Cobra\"}, {\"n\": 10, \"name\": \"Coelho\"}, {\"n\": 11, \"name\": \"Cavalo\"}, {\"n\": 12, \"name\": \"Elefante\"}, {\"n\": 13, \"name\": \"Galo\"}, {\"n\": 14, \"name\": \"Gato\"}, {\"n\": 15, \"name\": \"Jacaré\"}, {\"n\": 16, \"name\": \"Leão\"}, {\"n\": 17, \"name\": \"Macaco\"}, {\"n\": 18, \"name\": \"Porco\"}, {\"n\": 19, \"name\": \"Pavão\"}, {\"n\": 20, \"name\": \"Peru\"}, {\"n\": 21, \"name\": \"Touro\"}, {\"n\": 22, \"name\": \"Tigre\"}, {\"n\": 23, \"name\": \"Urso\"}, {\"n\": 24, \"name\": \"Veado\"}, {\"n\": 25, \"name\": \"Vaca\"}, {\"n\": 26, \"name\": \"Lobo\"}, {\"n\": 27, \"name\": \"Raposa\"}, {\"n\": 28, \"name\": \"Coruja\"}, {\"n\": 29, \"name\": \"Tubarão\"}, {\"n\": 30, \"name\": \"Golfinho\"}, {\"n\": 31, \"name\": \"Falcão\"}, {\"n\": 32, \"name\": \"Pantera\"}, {\"n\": 33, \"name\": \"Rato\"}, {\"n\": 34, \"name\": \"Pato\"}, {\"n\": 35, \"name\": \"Abelha\"}, {\"n\": 36, \"name\": \"Peixe\"}];\nconst drawId = prev.drawId;\nconst email = prev.email;\nconst takenNow = () => s.tickets.filter(t => t.drawId===drawId && ['cart','awaiting_pix','paid'].includes(t.status)).map(t => t.animalNumber);\nconst msgs = [];\nfor (const n of nums) {\n  const clash = s.tickets.find(t => t.drawId===drawId && t.animalNumber===n);\n  if (clash && clash.email !== email) {\n    const free = ANIMALS.filter(a => !takenNow().includes(a.n));\n    free.sort((a,b)=>Math.abs(a.n-n)-Math.abs(b.n-n));\n    const sug = free[0];\n    if (sug) {\n      s.tickets.push({ id: ++s.seq, email, drawId, animalNumber: sug.n, status: 'cart', priceCents: 500, pixTxid: null });\n      msgs.push(`${String(n).padStart(2,'0')} ocupado. Trocamos por ${String(sug.n).padStart(2,'0')} ${sug.name}.`);\n    } else msgs.push(`${String(n).padStart(2,'0')} ocupado e não há livre.`);\n    continue;\n  }\n  if (!clash) s.tickets.push({ id: ++s.seq, email, drawId, animalNumber: n, status: 'cart', priceCents: 500, pixTxid: null });\n}\nconst mine = s.tickets.filter(t => t.email===email && t.drawId===drawId);\nconst total = mine.reduce((a,t)=>a+t.priceCents,0);\nfunction emv(id, value){ return id + String(value.length).padStart(2,'0') + value; }\nfunction crc16(payload){ let crc=0xffff; for (let i=0;i<payload.length;i++){ crc ^= payload.charCodeAt(i)<<8; for(let b=0;b<8;b++) crc = crc&0x8000?(crc<<1)^0x1021:crc<<1, crc&=0xffff;} return crc.toString(16).toUpperCase().padStart(4,'0'); }\nconst txid = 'SIM'+Date.now().toString(36).toUpperCase();\nmine.forEach(t => { t.status='awaiting_pix'; t.pixTxid=txid; });\nconst amount=(total/100).toFixed(2);\nconst gui=emv('00','BR.GOV.BCB.PIX')+emv('01','simulacao-educacional@local');\nconst add=emv('05', txid.slice(0,25));\nconst base=emv('00','01')+emv('01','12')+emv('26',gui)+emv('52','0000')+emv('53','986')+emv('54',amount)+emv('58','BR')+emv('59','36 BICHOS SIM')+emv('60','PORTO ALEGRE')+emv('62',add)+'6304';\nconst payload=base+crc16(base);\nconst nomes = mine.map(t => {\n  const a = ANIMALS.find(x=>x.n===t.animalNumber);\n  return `${String(t.animalNumber).padStart(2,'0')} ${a?a.name:''}`;\n}).join(' · ');\nreturn [{ json: { ...prev, msgs: msgs.join(' '), nomes, total, totalFmt: (total/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}), payload, txid, ganho: (500*18/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) } }];\n"
+      },
+      "id": "3287206a-808b-4904-bfd1-6c4c3154e15e",
+      "name": "Reservar e PIX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "PIX simulado",
+        "formDescription": "={{ 'Fichas: ' + $json.nomes + '\\n\\nTotal ' + $json.totalFmt + '\\nAcerto paga ' + $json.ganho + ' por ficha.\\n\\n' + ($json.msgs || '') + '\\n\\nCódigo PIX (fictício):\\n' + $json.payload }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Confirmação",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Já paguei (simulação)"
+                  },
+                  {
+                    "option": "Cancelar"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Continuar"
+        }
+      },
+      "id": "5fc5d655-de5a-4ffd-8db7-2f5845645790",
+      "name": "Confirmar PIX",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        1460,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "aafdf245-c37c-46ee-b12e-220f10484bbc",
+              "leftValue": "={{ $json.Confirmação }}",
+              "rightValue": "Já paguei (simulação)",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2cdcf469-8c7d-4dd4-8b70-71fe7b5f8467",
+      "name": "Pagou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "Carrinho cancelado",
+        "completionMessage": "Nada foi cobrado. Abre o formulário de novo quando quiser jogar."
+      },
+      "id": "255c168c-798e-4a09-9e19-ef8416745ac1",
+      "name": "Cancelado",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst s = $getWorkflowStaticData('global');\nconst prev = $input.first().json;\nconst email = prev.email;\nconst drawId = prev.drawId;\ns.tickets.filter(t => t.email===email && t.drawId===drawId && t.status==='awaiting_pix').forEach(t => { t.status='paid'; t.paidAt=new Date().toISOString(); });\nreturn [{ json: { ...prev, pago: true } }];\n"
+      },
+      "id": "d300a925-49d5-472a-ba69-c46896acc43b",
+      "name": "Marcar pago",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Pagamento confirmado",
+        "formDescription": "={{ 'Fichas travadas: ' + $json.nomes + '\\nSorteio oficial às 18h (Brasília). Pode forçar agora no treino.' }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "E agora",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Forçar sorteio agora (treino)"
+                  },
+                  {
+                    "option": "Esperar o sorteio das 18h"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Seguir"
+        }
+      },
+      "id": "8f9e7a11-70e9-4e35-946d-f8111c9479a2",
+      "name": "Espera do sorteio",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "5ef051c8-7b87-4ca5-844d-282dba7bb26a",
+              "leftValue": "={{ $json['E agora'] }}",
+              "rightValue": "Forçar sorteio agora (treino)",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "de4af27b-b03b-46da-9b7c-73a9719f3258",
+      "name": "Forçar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2500,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "Tá na fila do sorteio",
+        "completionMessage": "Pagamento ok. O workflow Cron 18h sorteia sozinho. Abre o formulário depois das 18h ou force numa nova execução."
+      },
+      "id": "6d4a031a-44ac-443b-bdf9-dac9104668b0",
+      "name": "Aguardar 18h",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst crypto = require('crypto');\nconst s = $getWorkflowStaticData('global');\nconst prev = $input.first().json;\nconst draw = s.draws.find(d => d.id===prev.drawId) || s.draws.find(d => d.status==='open');\nif (draw && draw.status !== 'drawn') {\n  const n = crypto.randomBytes(4).readUInt32BE(0);\n  draw.status='drawn';\n  draw.winningNumber = (n % 36) + 1;\n  draw.drawnAt = new Date().toISOString();\n}\nconst ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\"}, {\"n\": 2, \"name\": \"Águia\"}, {\"n\": 3, \"name\": \"Burro\"}, {\"n\": 4, \"name\": \"Borboleta\"}, {\"n\": 5, \"name\": \"Cachorro\"}, {\"n\": 6, \"name\": \"Cabra\"}, {\"n\": 7, \"name\": \"Carneiro\"}, {\"n\": 8, \"name\": \"Camelo\"}, {\"n\": 9, \"name\": \"Cobra\"}, {\"n\": 10, \"name\": \"Coelho\"}, {\"n\": 11, \"name\": \"Cavalo\"}, {\"n\": 12, \"name\": \"Elefante\"}, {\"n\": 13, \"name\": \"Galo\"}, {\"n\": 14, \"name\": \"Gato\"}, {\"n\": 15, \"name\": \"Jacaré\"}, {\"n\": 16, \"name\": \"Leão\"}, {\"n\": 17, \"name\": \"Macaco\"}, {\"n\": 18, \"name\": \"Porco\"}, {\"n\": 19, \"name\": \"Pavão\"}, {\"n\": 20, \"name\": \"Peru\"}, {\"n\": 21, \"name\": \"Touro\"}, {\"n\": 22, \"name\": \"Tigre\"}, {\"n\": 23, \"name\": \"Urso\"}, {\"n\": 24, \"name\": \"Veado\"}, {\"n\": 25, \"name\": \"Vaca\"}, {\"n\": 26, \"name\": \"Lobo\"}, {\"n\": 27, \"name\": \"Raposa\"}, {\"n\": 28, \"name\": \"Coruja\"}, {\"n\": 29, \"name\": \"Tubarão\"}, {\"n\": 30, \"name\": \"Golfinho\"}, {\"n\": 31, \"name\": \"Falcão\"}, {\"n\": 32, \"name\": \"Pantera\"}, {\"n\": 33, \"name\": \"Rato\"}, {\"n\": 34, \"name\": \"Pato\"}, {\"n\": 35, \"name\": \"Abelha\"}, {\"n\": 36, \"name\": \"Peixe\"}];\nconst w = draw.winningNumber;\nconst winA = ANIMALS.find(a=>a.n===w);\nconst mine = s.tickets.filter(t => t.email===prev.email && t.drawId===draw.id && t.status==='paid');\nconst hits = mine.filter(t => t.animalNumber===w);\nconst won = hits.length>0;\nconst ganho = hits.reduce((a,t)=>a+t.priceCents*18,0);\nconst fichas = mine.map(t => `${String(t.animalNumber).padStart(2,'0')} ${ANIMALS.find(a=>a.n===t.animalNumber)?.name||''}`).join(', ');\nreturn [{ json: {\n  titulo: won ? 'Você ganhou' : 'Você perdeu',\n  bicho: `${String(w).padStart(2,'0')} ${winA?winA.name:''}`,\n  mensagem: won\n    ? `Seu ganho: ${(ganho/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}. Ficha R$ 5,00 × 18.`\n    : `Boa sorte na próxima. Suas fichas: ${fichas}. Ganho R$ 0,00.`,\n  won\n} }];\n"
+      },
+      "id": "3559a7b6-ac4c-4aaf-9cbb-d7c4890824dd",
+      "name": "Sortear",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "={{ $json.titulo }}",
+        "completionMessage": "={{ 'Bicho sorteado: ' + $json.bicho + '\\n\\n' + $json.mensagem }}"
+      },
+      "id": "5e478aa3-5840-4b4b-9b1a-ff3fb8bc6088",
+      "name": "Resultado",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        3020,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Cadastro": {
+      "main": [
+        [
+          {
+            "node": "Registrar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar": {
+      "main": [
+        [
+          {
+            "node": "Escolher bichos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher bichos": {
+      "main": [
+        [
+          {
+            "node": "Reservar e PIX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reservar e PIX": {
+      "main": [
+        [
+          {
+            "node": "Confirmar PIX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar PIX": {
+      "main": [
+        [
+          {
+            "node": "Pagou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pagou?": {
+      "main": [
+        [
+          {
+            "node": "Marcar pago",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar pago": {
+      "main": [
+        [
+          {
+            "node": "Espera do sorteio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espera do sorteio": {
+      "main": [
+        [
+          {
+            "node": "Forçar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forçar?": {
+      "main": [
+        [
+          {
+            "node": "Sortear",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aguardar 18h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortear": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
