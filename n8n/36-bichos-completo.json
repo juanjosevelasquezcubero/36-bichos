@@ -1,0 +1,621 @@
+{
+  "name": "36 Bichos — fluxo completo",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 36 Bichos — fluxo completo\n\n1. Clica **Publicar** (canto superior direito).\n2. Clica no node **Cadastro**.\n3. Copia a URL de produção do formulário e abre no navegador.\n4. Não uses o botão laranja no meio do caminho — o jogo é o formulário.\n\nCadastro → vários bichos → se ocupado, palpite livre → PIX fictício → ganhou 18× ou boa sorte na próxima.\n\nSorteio oficial 18h Brasília. Sem dinheiro real.",
+        "height": 420,
+        "width": 380,
+        "color": 4
+      },
+      "id": "d024c0e9-091e-4848-9a15-7a45bd9e7356",
+      "name": "LEIA ISTO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "path": "36-bichos",
+        "formTitle": "36 Bichos — Cadastro",
+        "formDescription": "Simulação educacional. Sem dinheiro real. Se já tens conta, usa o mesmo e-mail e senha.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Nome completo",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "Seu nome"
+            },
+            {
+              "fieldLabel": "E-mail",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Telefone",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "DDD + número"
+            },
+            {
+              "fieldLabel": "Senha",
+              "fieldType": "password",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Entrar no terreiro"
+        }
+      },
+      "id": "510f4258-5b64-47cc-8f5f-ac94bc8512af",
+      "name": "Cadastro",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        200
+      ],
+      "webhookId": "20aaceff-f1b7-43be-acdc-f7c863779711"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\"}, {\"n\": 2, \"name\": \"Águia\"}, {\"n\": 3, \"name\": \"Burro\"}, {\"n\": 4, \"name\": \"Borboleta\"}, {\"n\": 5, \"name\": \"Cachorro\"}, {\"n\": 6, \"name\": \"Cabra\"}, {\"n\": 7, \"name\": \"Carneiro\"}, {\"n\": 8, \"name\": \"Camelo\"}, {\"n\": 9, \"name\": \"Cobra\"}, {\"n\": 10, \"name\": \"Coelho\"}, {\"n\": 11, \"name\": \"Cavalo\"}, {\"n\": 12, \"name\": \"Elefante\"}, {\"n\": 13, \"name\": \"Galo\"}, {\"n\": 14, \"name\": \"Gato\"}, {\"n\": 15, \"name\": \"Jacaré\"}, {\"n\": 16, \"name\": \"Leão\"}, {\"n\": 17, \"name\": \"Macaco\"}, {\"n\": 18, \"name\": \"Porco\"}, {\"n\": 19, \"name\": \"Pavão\"}, {\"n\": 20, \"name\": \"Peru\"}, {\"n\": 21, \"name\": \"Touro\"}, {\"n\": 22, \"name\": \"Tigre\"}, {\"n\": 23, \"name\": \"Urso\"}, {\"n\": 24, \"name\": \"Veado\"}, {\"n\": 25, \"name\": \"Vaca\"}, {\"n\": 26, \"name\": \"Lobo\"}, {\"n\": 27, \"name\": \"Raposa\"}, {\"n\": 28, \"name\": \"Coruja\"}, {\"n\": 29, \"name\": \"Tubarão\"}, {\"n\": 30, \"name\": \"Golfinho\"}, {\"n\": 31, \"name\": \"Falcão\"}, {\"n\": 32, \"name\": \"Pantera\"}, {\"n\": 33, \"name\": \"Rato\"}, {\"n\": 34, \"name\": \"Pato\"}, {\"n\": 35, \"name\": \"Abelha\"}, {\"n\": 36, \"name\": \"Peixe\"}];\nfunction store() {\n  const s = $getWorkflowStaticData('global');\n  if (!s.users) s.users = {};\n  if (!s.tickets) s.tickets = [];\n  if (!s.draws) s.draws = [];\n  if (!s.seq) s.seq = 1;\n  return s;\n}\nfunction hash(pw, salt) {\n  const s = String(salt) + '|' + String(pw);\n  let h = 2166136261;\n  for (let i = 0; i < s.length; i++) {\n    h ^= s.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction animal(n) { return ANIMALS.find((a) => a.n === n); }\nfunction nextDrawIso() {\n  const now = new Date();\n  const sp = new Date(now.getTime() - 180 * 60 * 1000);\n  let t = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 21, 0, 0, 0);\n  if (t <= now.getTime()) t += 86400000;\n  return new Date(t).toISOString();\n}\nfunction openDraw(s) {\n  let d = s.draws.find((x) => x.status === 'open');\n  if (d) return d;\n  d = { id: ++s.seq, scheduledAt: nextDrawIso(), status: 'open', winningNumber: null, drawnAt: null };\n  s.draws.push(d);\n  for (const n of [3, 7, 11, 16, 22, 28, 32, 35]) {\n    s.tickets.push({ id: ++s.seq, email: 'house', drawId: d.id, animalNumber: n, status: 'paid', priceCents: 500 });\n  }\n  return d;\n}\nfunction taken(s, drawId) {\n  return s.tickets.filter((t) => t.drawId === drawId && ['cart', 'awaiting_pix', 'paid'].includes(t.status)).map((t) => t.animalNumber);\n}\nfunction money(cents) {\n  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });\n}\nfunction emv(id, value) { return id + String(value.length).padStart(2, '0') + value; }\nfunction crc16(payload) {\n  let crc = 0xffff;\n  for (let i = 0; i < payload.length; i++) {\n    crc ^= payload.charCodeAt(i) << 8;\n    for (let b = 0; b < 8; b++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1), crc &= 0xffff;\n  }\n  return crc.toString(16).toUpperCase().padStart(4, '0');\n}\nfunction pix(txid, cents) {\n  const amount = (cents / 100).toFixed(2);\n  const gui = emv('00', 'BR.GOV.BCB.PIX') + emv('01', 'simulacao-educacional@local');\n  const add = emv('05', String(txid).slice(0, 25));\n  const base = emv('00', '01') + emv('01', '12') + emv('26', gui) + emv('52', '0000') + emv('53', '986') + emv('54', amount) + emv('58', 'BR') + emv('59', '36 BICHOS SIM') + emv('60', 'PORTO ALEGRE') + emv('62', add) + '6304';\n  return base + crc16(base);\n}\n\nconst j = $input.first().json;\nconst name = String(j['Nome completo'] || j.Nome || '').trim();\nconst email = String(j['E-mail'] || j.Email || '').trim().toLowerCase();\nconst phone = String(j.Telefone || '').replace(/\\D/g, '');\nconst password = String(j.Senha || '');\nif (name.length < 3) throw new Error('Nome com no mínimo 3 letras.');\nif (!email.includes('@')) throw new Error('E-mail inválido.');\nif (phone.length < 10) throw new Error('Telefone incompleto.');\nif (password.length < 8) throw new Error('Senha com no mínimo 8 caracteres.');\nconst s = store();\nif (s.users[email]) {\n  if (s.users[email].passwordHash !== hash(password, s.users[email].salt)) {\n    throw new Error('Conta já existe e a senha não confere.');\n  }\n} else {\n  const salt = Date.now().toString(36) + Math.random().toString(36).slice(2);\n  s.users[email] = { name, email, phone, salt, passwordHash: hash(password, salt), createdAt: new Date().toISOString() };\n}\nconst draw = openDraw(s);\nconst ocupados = taken(s, draw.id);\nconst livres = ANIMALS.filter((a) => !ocupados.includes(a.n)).map((a) => pad(a.n) + ' ' + a.name).join(', ');\nconst aviso = 'Casas ocupadas: ' + ocupados.map(pad).join(', ') + '. Livres: ' + livres + '. Marca um ou vários. Se o teu já tiver dono, o sistema troca por um palpite livre. Ficha R$ 5,00. Acerto paga 18× (R$ 90,00). Simulação, sem dinheiro real.';\nreturn [{ json: { email, name, phone, drawId: draw.id, aviso, taken: ocupados } }];"
+      },
+      "id": "8735f42c-c020-43b2-89b2-f8b399eefb6e",
+      "name": "Registrar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Escolhe os bichos",
+        "formDescription": "={{ $json.aviso }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Bichos",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "01 — Avestruz"
+                  },
+                  {
+                    "option": "02 — Águia"
+                  },
+                  {
+                    "option": "03 — Burro"
+                  },
+                  {
+                    "option": "04 — Borboleta"
+                  },
+                  {
+                    "option": "05 — Cachorro"
+                  },
+                  {
+                    "option": "06 — Cabra"
+                  },
+                  {
+                    "option": "07 — Carneiro"
+                  },
+                  {
+                    "option": "08 — Camelo"
+                  },
+                  {
+                    "option": "09 — Cobra"
+                  },
+                  {
+                    "option": "10 — Coelho"
+                  },
+                  {
+                    "option": "11 — Cavalo"
+                  },
+                  {
+                    "option": "12 — Elefante"
+                  },
+                  {
+                    "option": "13 — Galo"
+                  },
+                  {
+                    "option": "14 — Gato"
+                  },
+                  {
+                    "option": "15 — Jacaré"
+                  },
+                  {
+                    "option": "16 — Leão"
+                  },
+                  {
+                    "option": "17 — Macaco"
+                  },
+                  {
+                    "option": "18 — Porco"
+                  },
+                  {
+                    "option": "19 — Pavão"
+                  },
+                  {
+                    "option": "20 — Peru"
+                  },
+                  {
+                    "option": "21 — Touro"
+                  },
+                  {
+                    "option": "22 — Tigre"
+                  },
+                  {
+                    "option": "23 — Urso"
+                  },
+                  {
+                    "option": "24 — Veado"
+                  },
+                  {
+                    "option": "25 — Vaca"
+                  },
+                  {
+                    "option": "26 — Lobo"
+                  },
+                  {
+                    "option": "27 — Raposa"
+                  },
+                  {
+                    "option": "28 — Coruja"
+                  },
+                  {
+                    "option": "29 — Tubarão"
+                  },
+                  {
+                    "option": "30 — Golfinho"
+                  },
+                  {
+                    "option": "31 — Falcão"
+                  },
+                  {
+                    "option": "32 — Pantera"
+                  },
+                  {
+                    "option": "33 — Rato"
+                  },
+                  {
+                    "option": "34 — Pato"
+                  },
+                  {
+                    "option": "35 — Abelha"
+                  },
+                  {
+                    "option": "36 — Peixe"
+                  }
+                ]
+              },
+              "multiselect": true,
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Ir ao carrinho / PIX"
+        }
+      },
+      "id": "e22c3e6b-b337-49e1-8f49-9471861889cd",
+      "name": "Escolher bichos",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\"}, {\"n\": 2, \"name\": \"Águia\"}, {\"n\": 3, \"name\": \"Burro\"}, {\"n\": 4, \"name\": \"Borboleta\"}, {\"n\": 5, \"name\": \"Cachorro\"}, {\"n\": 6, \"name\": \"Cabra\"}, {\"n\": 7, \"name\": \"Carneiro\"}, {\"n\": 8, \"name\": \"Camelo\"}, {\"n\": 9, \"name\": \"Cobra\"}, {\"n\": 10, \"name\": \"Coelho\"}, {\"n\": 11, \"name\": \"Cavalo\"}, {\"n\": 12, \"name\": \"Elefante\"}, {\"n\": 13, \"name\": \"Galo\"}, {\"n\": 14, \"name\": \"Gato\"}, {\"n\": 15, \"name\": \"Jacaré\"}, {\"n\": 16, \"name\": \"Leão\"}, {\"n\": 17, \"name\": \"Macaco\"}, {\"n\": 18, \"name\": \"Porco\"}, {\"n\": 19, \"name\": \"Pavão\"}, {\"n\": 20, \"name\": \"Peru\"}, {\"n\": 21, \"name\": \"Touro\"}, {\"n\": 22, \"name\": \"Tigre\"}, {\"n\": 23, \"name\": \"Urso\"}, {\"n\": 24, \"name\": \"Veado\"}, {\"n\": 25, \"name\": \"Vaca\"}, {\"n\": 26, \"name\": \"Lobo\"}, {\"n\": 27, \"name\": \"Raposa\"}, {\"n\": 28, \"name\": \"Coruja\"}, {\"n\": 29, \"name\": \"Tubarão\"}, {\"n\": 30, \"name\": \"Golfinho\"}, {\"n\": 31, \"name\": \"Falcão\"}, {\"n\": 32, \"name\": \"Pantera\"}, {\"n\": 33, \"name\": \"Rato\"}, {\"n\": 34, \"name\": \"Pato\"}, {\"n\": 35, \"name\": \"Abelha\"}, {\"n\": 36, \"name\": \"Peixe\"}];\nfunction store() {\n  const s = $getWorkflowStaticData('global');\n  if (!s.users) s.users = {};\n  if (!s.tickets) s.tickets = [];\n  if (!s.draws) s.draws = [];\n  if (!s.seq) s.seq = 1;\n  return s;\n}\nfunction hash(pw, salt) {\n  const s = String(salt) + '|' + String(pw);\n  let h = 2166136261;\n  for (let i = 0; i < s.length; i++) {\n    h ^= s.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction animal(n) { return ANIMALS.find((a) => a.n === n); }\nfunction nextDrawIso() {\n  const now = new Date();\n  const sp = new Date(now.getTime() - 180 * 60 * 1000);\n  let t = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 21, 0, 0, 0);\n  if (t <= now.getTime()) t += 86400000;\n  return new Date(t).toISOString();\n}\nfunction openDraw(s) {\n  let d = s.draws.find((x) => x.status === 'open');\n  if (d) return d;\n  d = { id: ++s.seq, scheduledAt: nextDrawIso(), status: 'open', winningNumber: null, drawnAt: null };\n  s.draws.push(d);\n  for (const n of [3, 7, 11, 16, 22, 28, 32, 35]) {\n    s.tickets.push({ id: ++s.seq, email: 'house', drawId: d.id, animalNumber: n, status: 'paid', priceCents: 500 });\n  }\n  return d;\n}\nfunction taken(s, drawId) {\n  return s.tickets.filter((t) => t.drawId === drawId && ['cart', 'awaiting_pix', 'paid'].includes(t.status)).map((t) => t.animalNumber);\n}\nfunction money(cents) {\n  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });\n}\nfunction emv(id, value) { return id + String(value.length).padStart(2, '0') + value; }\nfunction crc16(payload) {\n  let crc = 0xffff;\n  for (let i = 0; i < payload.length; i++) {\n    crc ^= payload.charCodeAt(i) << 8;\n    for (let b = 0; b < 8; b++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1), crc &= 0xffff;\n  }\n  return crc.toString(16).toUpperCase().padStart(4, '0');\n}\nfunction pix(txid, cents) {\n  const amount = (cents / 100).toFixed(2);\n  const gui = emv('00', 'BR.GOV.BCB.PIX') + emv('01', 'simulacao-educacional@local');\n  const add = emv('05', String(txid).slice(0, 25));\n  const base = emv('00', '01') + emv('01', '12') + emv('26', gui) + emv('52', '0000') + emv('53', '986') + emv('54', amount) + emv('58', 'BR') + emv('59', '36 BICHOS SIM') + emv('60', 'PORTO ALEGRE') + emv('62', add) + '6304';\n  return base + crc16(base);\n}\n\nconst prev = $input.first().json;\nconst raw = prev.Bichos || prev.bichos || [];\nconst list = Array.isArray(raw) ? raw : String(raw).split(',');\nfunction num(v) {\n  const m = String(v).match(/(\\d+)/);\n  return m ? Number(m[1]) : 0;\n}\nconst nums = [...new Set(list.map(num).filter((n) => n >= 1 && n <= 36))];\nif (!nums.length) throw new Error('Escolhe pelo menos um bicho.');\nconst s = store();\nconst drawId = prev.drawId;\nconst email = prev.email;\nconst msgs = [];\nfor (const n of nums) {\n  const clash = s.tickets.find((t) => t.drawId === drawId && t.animalNumber === n && t.email !== email && ['cart', 'awaiting_pix', 'paid'].includes(t.status));\n  if (clash) {\n    const ocup = taken(s, drawId);\n    const free = ANIMALS.filter((a) => !ocup.includes(a.n)).sort((a, b) => Math.abs(a.n - n) - Math.abs(b.n - n));\n    const sug = free[0];\n    if (sug) {\n      s.tickets.push({ id: ++s.seq, email, drawId, animalNumber: sug.n, status: 'cart', priceCents: 500, pixTxid: null });\n      msgs.push(pad(n) + ' ocupado. Trocamos por ' + pad(sug.n) + ' ' + sug.name + '.');\n    } else msgs.push(pad(n) + ' ocupado e não há livre.');\n    continue;\n  }\n  const mine = s.tickets.find((t) => t.drawId === drawId && t.email === email && t.animalNumber === n);\n  if (!mine) s.tickets.push({ id: ++s.seq, email, drawId, animalNumber: n, status: 'cart', priceCents: 500, pixTxid: null });\n}\nconst mine = s.tickets.filter((t) => t.email === email && t.drawId === drawId);\nconst total = mine.reduce((a, t) => a + t.priceCents, 0);\nconst txid = 'SIM' + Date.now().toString(36).toUpperCase();\nmine.forEach((t) => { t.status = 'awaiting_pix'; t.pixTxid = txid; });\nconst nomes = mine.map((t) => pad(t.animalNumber) + ' ' + (animal(t.animalNumber) || {}).name).join(' · ');\nreturn [{ json: {\n  ...prev,\n  msgs: msgs.join(' '),\n  nomes,\n  total,\n  totalFmt: money(total),\n  payload: pix(txid, total),\n  txid,\n  ganho: money(500 * 18),\n} }];"
+      },
+      "id": "7d11d794-2c7f-43e5-b44f-488084c24f19",
+      "name": "Reservar e PIX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "PIX simulado",
+        "formDescription": "={{ 'Fichas: ' + $json.nomes + '\\n\\nTotal ' + $json.totalFmt + '\\nAcerto paga ' + $json.ganho + ' por ficha.\\n\\n' + ($json.msgs || '') + '\\n\\nCódigo PIX (fictício):\\n' + $json.payload }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Confirmação",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Já paguei (simulação)"
+                  },
+                  {
+                    "option": "Cancelar"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Continuar"
+        }
+      },
+      "id": "0d3cdea8-b67f-47b3-ba56-d3e03dd91124",
+      "name": "Confirmar PIX",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d2691674-8569-4303-a59e-3730367dcd29",
+              "leftValue": "={{ $json.Confirmação }}",
+              "rightValue": "Já paguei (simulação)",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "35a41dee-2245-452f-9a66-eb9b6e606ad7",
+      "name": "Pagou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "Carrinho cancelado",
+        "completionMessage": "Nada foi cobrado. Abre o formulário de novo quando quiser jogar."
+      },
+      "id": "c8f2e800-6ef3-4bbc-8186-0971e153cedb",
+      "name": "Cancelado",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        2020,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $getWorkflowStaticData('global');\nconst prev = $input.first().json;\ns.tickets.filter((t) => t.email === prev.email && t.drawId === prev.drawId && t.status === 'awaiting_pix').forEach((t) => {\n  t.status = 'paid';\n  t.paidAt = new Date().toISOString();\n});\nreturn [{ json: { ...prev, pago: true } }];"
+      },
+      "id": "13847074-fd97-4ce8-8c2e-60bb0f9f13e1",
+      "name": "Marcar pago",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Pagamento confirmado",
+        "formDescription": "={{ 'Fichas travadas: ' + $json.nomes + '\\nSorteio oficial às 18h (Brasília). Pode forçar agora no treino. Sem dinheiro real.' }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "E agora",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Forçar sorteio agora (treino)"
+                  },
+                  {
+                    "option": "Esperar o sorteio das 18h"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Seguir"
+        }
+      },
+      "id": "71ed3f3a-f0a6-4d96-af47-4de05cbf3b5b",
+      "name": "Espera do sorteio",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        2280,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "baa93450-5a15-4ad8-a62b-0c5e42d79a60",
+              "leftValue": "={{ $json['E agora'] }}",
+              "rightValue": "Forçar sorteio agora (treino)",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "19fb2de8-5b9d-41fe-81a0-8bf52f61710e",
+      "name": "Forçar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "Tá na fila do sorteio",
+        "completionMessage": "Pagamento ok. O cron das 18h sorteia sozinho. Abre o formulário depois das 18h ou força numa nova jogada."
+      },
+      "id": "41571d5c-a97d-437e-949c-d00262a40684",
+      "name": "Aguardar 18h",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        2800,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\"}, {\"n\": 2, \"name\": \"Águia\"}, {\"n\": 3, \"name\": \"Burro\"}, {\"n\": 4, \"name\": \"Borboleta\"}, {\"n\": 5, \"name\": \"Cachorro\"}, {\"n\": 6, \"name\": \"Cabra\"}, {\"n\": 7, \"name\": \"Carneiro\"}, {\"n\": 8, \"name\": \"Camelo\"}, {\"n\": 9, \"name\": \"Cobra\"}, {\"n\": 10, \"name\": \"Coelho\"}, {\"n\": 11, \"name\": \"Cavalo\"}, {\"n\": 12, \"name\": \"Elefante\"}, {\"n\": 13, \"name\": \"Galo\"}, {\"n\": 14, \"name\": \"Gato\"}, {\"n\": 15, \"name\": \"Jacaré\"}, {\"n\": 16, \"name\": \"Leão\"}, {\"n\": 17, \"name\": \"Macaco\"}, {\"n\": 18, \"name\": \"Porco\"}, {\"n\": 19, \"name\": \"Pavão\"}, {\"n\": 20, \"name\": \"Peru\"}, {\"n\": 21, \"name\": \"Touro\"}, {\"n\": 22, \"name\": \"Tigre\"}, {\"n\": 23, \"name\": \"Urso\"}, {\"n\": 24, \"name\": \"Veado\"}, {\"n\": 25, \"name\": \"Vaca\"}, {\"n\": 26, \"name\": \"Lobo\"}, {\"n\": 27, \"name\": \"Raposa\"}, {\"n\": 28, \"name\": \"Coruja\"}, {\"n\": 29, \"name\": \"Tubarão\"}, {\"n\": 30, \"name\": \"Golfinho\"}, {\"n\": 31, \"name\": \"Falcão\"}, {\"n\": 32, \"name\": \"Pantera\"}, {\"n\": 33, \"name\": \"Rato\"}, {\"n\": 34, \"name\": \"Pato\"}, {\"n\": 35, \"name\": \"Abelha\"}, {\"n\": 36, \"name\": \"Peixe\"}];\nfunction store() {\n  const s = $getWorkflowStaticData('global');\n  if (!s.users) s.users = {};\n  if (!s.tickets) s.tickets = [];\n  if (!s.draws) s.draws = [];\n  if (!s.seq) s.seq = 1;\n  return s;\n}\nfunction hash(pw, salt) {\n  const s = String(salt) + '|' + String(pw);\n  let h = 2166136261;\n  for (let i = 0; i < s.length; i++) {\n    h ^= s.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction animal(n) { return ANIMALS.find((a) => a.n === n); }\nfunction nextDrawIso() {\n  const now = new Date();\n  const sp = new Date(now.getTime() - 180 * 60 * 1000);\n  let t = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 21, 0, 0, 0);\n  if (t <= now.getTime()) t += 86400000;\n  return new Date(t).toISOString();\n}\nfunction openDraw(s) {\n  let d = s.draws.find((x) => x.status === 'open');\n  if (d) return d;\n  d = { id: ++s.seq, scheduledAt: nextDrawIso(), status: 'open', winningNumber: null, drawnAt: null };\n  s.draws.push(d);\n  for (const n of [3, 7, 11, 16, 22, 28, 32, 35]) {\n    s.tickets.push({ id: ++s.seq, email: 'house', drawId: d.id, animalNumber: n, status: 'paid', priceCents: 500 });\n  }\n  return d;\n}\nfunction taken(s, drawId) {\n  return s.tickets.filter((t) => t.drawId === drawId && ['cart', 'awaiting_pix', 'paid'].includes(t.status)).map((t) => t.animalNumber);\n}\nfunction money(cents) {\n  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });\n}\nfunction emv(id, value) { return id + String(value.length).padStart(2, '0') + value; }\nfunction crc16(payload) {\n  let crc = 0xffff;\n  for (let i = 0; i < payload.length; i++) {\n    crc ^= payload.charCodeAt(i) << 8;\n    for (let b = 0; b < 8; b++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1), crc &= 0xffff;\n  }\n  return crc.toString(16).toUpperCase().padStart(4, '0');\n}\nfunction pix(txid, cents) {\n  const amount = (cents / 100).toFixed(2);\n  const gui = emv('00', 'BR.GOV.BCB.PIX') + emv('01', 'simulacao-educacional@local');\n  const add = emv('05', String(txid).slice(0, 25));\n  const base = emv('00', '01') + emv('01', '12') + emv('26', gui) + emv('52', '0000') + emv('53', '986') + emv('54', amount) + emv('58', 'BR') + emv('59', '36 BICHOS SIM') + emv('60', 'PORTO ALEGRE') + emv('62', add) + '6304';\n  return base + crc16(base);\n}\n\nconst prev = $input.first().json;\nconst s = store();\nconst draw = s.draws.find((d) => d.id === prev.drawId) || s.draws.find((d) => d.status === 'open');\nif (!draw) throw new Error('Sorteio não encontrado.');\nif (draw.status !== 'drawn') {\n  draw.status = 'drawn';\n  draw.winningNumber = Math.floor(Math.random() * 36) + 1;\n  draw.drawnAt = new Date().toISOString();\n}\nconst w = draw.winningNumber;\nconst winA = animal(w);\nconst mine = s.tickets.filter((t) => t.email === prev.email && t.drawId === draw.id && t.status === 'paid');\nconst hits = mine.filter((t) => t.animalNumber === w);\nconst won = hits.length > 0;\nconst ganho = hits.reduce((a, t) => a + t.priceCents * 18, 0);\nconst fichas = mine.map((t) => pad(t.animalNumber) + ' ' + (animal(t.animalNumber) || {}).name).join(', ');\nreturn [{ json: {\n  titulo: won ? 'Você ganhou' : 'Você perdeu',\n  bicho: pad(w) + ' ' + (winA ? winA.name : ''),\n  mensagem: won\n    ? ('Seu ganho: ' + money(ganho) + '. Ficha R$ 5,00 × 18.')\n    : ('Boa sorte na próxima. Suas fichas: ' + fichas + '. Ganho R$ 0,00.'),\n  won,\n} }];"
+      },
+      "id": "db050d35-e509-49cf-9139-bc42815972fa",
+      "name": "Sortear",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "={{ $json.titulo }}",
+        "completionMessage": "={{ 'Bicho sorteado: ' + $json.bicho + '\\n\\n' + $json.mensagem }}"
+      },
+      "id": "902c7f9c-d5b8-472c-b737-1c9f516d7a4f",
+      "name": "Resultado",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.2,
+      "position": [
+        3060,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "6b616a3a-7c89-424f-bd02-f08f3eff57fc",
+      "name": "Todo dia 18h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        460,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ANIMALS = [{\"n\": 1, \"name\": \"Avestruz\"}, {\"n\": 2, \"name\": \"Águia\"}, {\"n\": 3, \"name\": \"Burro\"}, {\"n\": 4, \"name\": \"Borboleta\"}, {\"n\": 5, \"name\": \"Cachorro\"}, {\"n\": 6, \"name\": \"Cabra\"}, {\"n\": 7, \"name\": \"Carneiro\"}, {\"n\": 8, \"name\": \"Camelo\"}, {\"n\": 9, \"name\": \"Cobra\"}, {\"n\": 10, \"name\": \"Coelho\"}, {\"n\": 11, \"name\": \"Cavalo\"}, {\"n\": 12, \"name\": \"Elefante\"}, {\"n\": 13, \"name\": \"Galo\"}, {\"n\": 14, \"name\": \"Gato\"}, {\"n\": 15, \"name\": \"Jacaré\"}, {\"n\": 16, \"name\": \"Leão\"}, {\"n\": 17, \"name\": \"Macaco\"}, {\"n\": 18, \"name\": \"Porco\"}, {\"n\": 19, \"name\": \"Pavão\"}, {\"n\": 20, \"name\": \"Peru\"}, {\"n\": 21, \"name\": \"Touro\"}, {\"n\": 22, \"name\": \"Tigre\"}, {\"n\": 23, \"name\": \"Urso\"}, {\"n\": 24, \"name\": \"Veado\"}, {\"n\": 25, \"name\": \"Vaca\"}, {\"n\": 26, \"name\": \"Lobo\"}, {\"n\": 27, \"name\": \"Raposa\"}, {\"n\": 28, \"name\": \"Coruja\"}, {\"n\": 29, \"name\": \"Tubarão\"}, {\"n\": 30, \"name\": \"Golfinho\"}, {\"n\": 31, \"name\": \"Falcão\"}, {\"n\": 32, \"name\": \"Pantera\"}, {\"n\": 33, \"name\": \"Rato\"}, {\"n\": 34, \"name\": \"Pato\"}, {\"n\": 35, \"name\": \"Abelha\"}, {\"n\": 36, \"name\": \"Peixe\"}];\nfunction store() {\n  const s = $getWorkflowStaticData('global');\n  if (!s.users) s.users = {};\n  if (!s.tickets) s.tickets = [];\n  if (!s.draws) s.draws = [];\n  if (!s.seq) s.seq = 1;\n  return s;\n}\nfunction hash(pw, salt) {\n  const s = String(salt) + '|' + String(pw);\n  let h = 2166136261;\n  for (let i = 0; i < s.length; i++) {\n    h ^= s.charCodeAt(i);\n    h = Math.imul(h, 16777619);\n  }\n  return (h >>> 0).toString(16);\n}\nfunction pad(n) { return String(n).padStart(2, '0'); }\nfunction animal(n) { return ANIMALS.find((a) => a.n === n); }\nfunction nextDrawIso() {\n  const now = new Date();\n  const sp = new Date(now.getTime() - 180 * 60 * 1000);\n  let t = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 21, 0, 0, 0);\n  if (t <= now.getTime()) t += 86400000;\n  return new Date(t).toISOString();\n}\nfunction openDraw(s) {\n  let d = s.draws.find((x) => x.status === 'open');\n  if (d) return d;\n  d = { id: ++s.seq, scheduledAt: nextDrawIso(), status: 'open', winningNumber: null, drawnAt: null };\n  s.draws.push(d);\n  for (const n of [3, 7, 11, 16, 22, 28, 32, 35]) {\n    s.tickets.push({ id: ++s.seq, email: 'house', drawId: d.id, animalNumber: n, status: 'paid', priceCents: 500 });\n  }\n  return d;\n}\nfunction taken(s, drawId) {\n  return s.tickets.filter((t) => t.drawId === drawId && ['cart', 'awaiting_pix', 'paid'].includes(t.status)).map((t) => t.animalNumber);\n}\nfunction money(cents) {\n  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });\n}\nfunction emv(id, value) { return id + String(value.length).padStart(2, '0') + value; }\nfunction crc16(payload) {\n  let crc = 0xffff;\n  for (let i = 0; i < payload.length; i++) {\n    crc ^= payload.charCodeAt(i) << 8;\n    for (let b = 0; b < 8; b++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1), crc &= 0xffff;\n  }\n  return crc.toString(16).toUpperCase().padStart(4, '0');\n}\nfunction pix(txid, cents) {\n  const amount = (cents / 100).toFixed(2);\n  const gui = emv('00', 'BR.GOV.BCB.PIX') + emv('01', 'simulacao-educacional@local');\n  const add = emv('05', String(txid).slice(0, 25));\n  const base = emv('00', '01') + emv('01', '12') + emv('26', gui) + emv('52', '0000') + emv('53', '986') + emv('54', amount) + emv('58', 'BR') + emv('59', '36 BICHOS SIM') + emv('60', 'PORTO ALEGRE') + emv('62', add) + '6304';\n  return base + crc16(base);\n}\n\nconst s = store();\nconst now = Date.now();\nfor (const d of s.draws.filter((x) => x.status === 'open' && new Date(x.scheduledAt).getTime() <= now)) {\n  d.status = 'drawn';\n  d.winningNumber = Math.floor(Math.random() * 36) + 1;\n  d.drawnAt = new Date().toISOString();\n}\nopenDraw(s);\nreturn [{ json: { ok: true, lastDrawn: s.draws.filter((d) => d.status === 'drawn').slice(-1)[0] || null } }];"
+      },
+      "id": "8b13a1b6-68e0-4b30-877a-4184edb1e569",
+      "name": "Sortear abertos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Cadastro": {
+      "main": [
+        [
+          {
+            "node": "Registrar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar": {
+      "main": [
+        [
+          {
+            "node": "Escolher bichos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher bichos": {
+      "main": [
+        [
+          {
+            "node": "Reservar e PIX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reservar e PIX": {
+      "main": [
+        [
+          {
+            "node": "Confirmar PIX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar PIX": {
+      "main": [
+        [
+          {
+            "node": "Pagou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pagou?": {
+      "main": [
+        [
+          {
+            "node": "Marcar pago",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar pago": {
+      "main": [
+        [
+          {
+            "node": "Espera do sorteio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espera do sorteio": {
+      "main": [
+        [
+          {
+            "node": "Forçar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forçar?": {
+      "main": [
+        [
+          {
+            "node": "Sortear",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aguardar 18h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortear": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Todo dia 18h": {
+      "main": [
+        [
+          {
+            "node": "Sortear abertos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
