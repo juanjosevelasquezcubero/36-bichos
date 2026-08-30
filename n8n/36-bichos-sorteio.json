@@ -1,0 +1,53 @@
+{
+  "name": "36 Bichos — Sorteio 18h",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sorteio 18h\n\nAtive junto com o app **ou** os formulários.\nRoda todo dia às 18:00 (America/Sao_Paulo).",
+        "height": 220,
+        "width": 320,
+        "color": 5
+      },
+      "id": "96d1c9c1-fa92-4006-bc5d-fce6134a81c8",
+      "name": "Como usar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "f9b4ab87-c13a-48f3-ac69-3f9bdb5e107e",
+      "name": "Todo dia 18h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [420, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst s = $getWorkflowStaticData('global');\nif (!s.draws) s.draws = [];\nif (!s.tickets) s.tickets = [];\nif (!s.seq) s.seq = 1;\nconst now = Date.now();\nfor (const d of s.draws.filter(x => x.status==='open' && new Date(x.scheduledAt).getTime()<=now)) {\n  const n = crypto.randomBytes(4).readUInt32BE(0);\n  d.status='drawn';\n  d.winningNumber=(n%36)+1;\n  d.drawnAt=new Date().toISOString();\n}\nlet open = s.draws.find(d => d.status==='open');\nif (!open) {\n  const sp = new Date(Date.now() - 180*60*1000);\n  let t = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 21,0,0,0);\n  if (t <= Date.now()) t += 86400000;\n  open = { id: ++s.seq, scheduledAt: new Date(t).toISOString(), status:'open', winningNumber:null, drawnAt:null };\n  s.draws.push(open);\n  for (const n of [3,7,11,16,22,28,32,35]) {\n    s.tickets.push({ id: ++s.seq, email:'house', drawId: open.id, animalNumber:n, status:'paid', priceCents:500, pixTxid:'HOUSE-'+n });\n  }\n}\nreturn [{ json: { ok: true, open, lastDrawn: s.draws.filter(d=>d.status==='drawn').slice(-1)[0] || null } }];\n"
+      },
+      "id": "9cdcf3db-b952-48ed-88c6-0f33ed6d2e6e",
+      "name": "Sortear abertos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200]
+    }
+  ],
+  "connections": {
+    "Todo dia 18h": {
+      "main": [[{ "node": "Sortear abertos", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "America/Sao_Paulo" },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": true }
+}
