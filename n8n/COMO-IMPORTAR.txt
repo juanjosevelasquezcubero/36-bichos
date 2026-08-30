@@ -53,7 +53,12 @@ No app, o botão “Forçar sorteio agora (treino)” adianta o resultado.
 
 Dados
 -----
-Contas, fichas e sorteios ficam na memória estática do workflow.
-Reiniciar o n8n pode zerar.
+Contas, fichas e sorteios ficam na memória estática do workflow
+($getWorkflowStaticData). Reiniciar o n8n pode zerar.
 Senha: PBKDF2 (120 mil iterações), nunca texto puro.
 PIX: payload EMV didático, chave fictícia.
+
+Se quiser Postgres de verdade
+-----------------------------
+Troque os nodes “Code” de dados por Postgres Insert/Select,
+usando as mesmas tabelas do app (profiles, draws, tickets).
